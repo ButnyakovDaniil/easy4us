@@ -150,7 +150,8 @@ def process_files(session, dir, dest, phpfiles):
                 not_decoded.extend([os.path.join(dir, f) for f in phpfiles])
             clear(session)
 
-if __name__ == '__main__':
+
+def main():
     if args.destination == "":
         args.destination = os.path.basename(args.source) + "_decoded"
 
@@ -182,7 +183,7 @@ if __name__ == '__main__':
                     csrc = os.path.join(dest, f)
                     if not os.path.exists(csrc):
                         needed.append(f)
-                    #else:
+                    # else:
                     #    print("%s exists already. skipping." % f)
                 phpfiles = needed
 
@@ -193,3 +194,6 @@ if __name__ == '__main__':
         print("finished. ioncube files that failed to decode:")
         for f in not_decoded:
             print(f)
+
+if __name__ == '__main__':
+    main()
