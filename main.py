@@ -8,7 +8,7 @@ from io import BytesIO
 import requests
 import bs4
 
-parser = argparse.ArgumentParser(usage="easy4us", description="decode directories with easytoyou.eu")
+parser = argparse.ArgumentParser(usage="e2u-main", description="decode files from txt file with easytoyou.eu")
 parser.add_argument("-u", "--username", required=True, help="easytoyou.eu username")
 parser.add_argument("-p", "--password", required=True, help="easytoyou.eu password")
 parser.add_argument("-s", "--source", required=True, help="source directory")
