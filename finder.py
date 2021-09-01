@@ -40,12 +40,14 @@ def fileRemoving(directory, text, save):
 
 def fileShower(directory, text,show):
     if show==True:
+        print("============================\n"
+              "Those files have been found:")
         if text=='.':
             text=directory
         path=text+"/encodedFilesList.txt"
         with open(path, "r") as file:
             for line in file:
-                print(line)
+                print("./"+line)
 
 fileFinder(args.directory, args.text)
 fileShower(args.directory, args.text, args.show)

@@ -11,7 +11,7 @@ import bs4
 parser = argparse.ArgumentParser(usage="e2u-main", description="decode files from txt file with easytoyou.eu")
 parser.add_argument("-u", "--username", required=True, help="easytoyou.eu username")
 parser.add_argument("-p", "--password", required=True, help="easytoyou.eu password")
-parser.add_argument("-s", "--source", required=True, help="source directory")
+parser.add_argument("-s", "--source", required=True, help="source directory")#in finder.py it is directory
 parser.add_argument("-o", "--destination", required=True, help="destination directory", default="")
 parser.add_argument("-d", "--decoder", help="decoder (default: ic10php72)", default="ic10php72")
 parser.add_argument("-w", "--overwrite", help="overwrite", action='store_true', default=False)
@@ -45,12 +45,12 @@ def copy(src, dest, files):
         print("copied %s to %s" % (file, cdest))
 
 
-def clear(session):
+def clear(session, decoder):
     print("clearing page", end='')
     c = 0
     while True:
         c += 1
-        res = session.get(base_url + "/decoder/%s/1" % args.decoder, headers=headers)
+        res = session.get(base_url + "/decoder/%s/1" % decoder, headers=headers)
         s = bs4.BeautifulSoup(res.content, features="lxml")
         inputs = s.find_all(attrs={"name": "file[]"})
         if len(inputs) < 1:
@@ -59,7 +59,7 @@ def clear(session):
         final = ""
         for i in inputs:
             final += "%s&" % urllib.parse.urlencode({i["name"]: i["value"]})
-        session.post(base_url + "/decoder/%s/1" % args.decoder, data=final,
+        session.post(base_url + "/decoder/%s/1" % decoder, data=final,
                      headers=dict(headers, **{"Content-Type": "application/x-www-form-urlencoded"}))
         print("...%d" % c, end='')
         
@@ -81,8 +81,8 @@ def parse_upload_result(r):
     return success, failure
 
 
-def upload(session, dir, files):
-    r = session.get(base_url + "/decoder/%s" % args.decoder, headers=headers, timeout=300)
+def upload(session, dir, files, decoder):
+    r = session.get(base_url + "/decoder/%s" % decoder, headers=headers, timeout=300)
     s = bs4.BeautifulSoup(r.content, features="lxml")
     el = s.find(id="uploadfileblue")
     if not el:
@@ -97,7 +97,7 @@ def upload(session, dir, files):
             upload.append((n, (file, full, "application/x-php")))
     upload.append(("submit", (None, "Decode")))
     if len(upload) > 0:
-        r = session.post(base_url + "/decoder/%s" % args.decoder,
+        r = session.post(base_url + "/decoder/%s" % decoder,
                          headers=headers,
                          files=upload)
         return parse_upload_result(r)
@@ -130,9 +130,9 @@ def batch(iterable, n=1):
         yield iterable[ndx:min(ndx + n, l)]
 
 
-def process_files(session, dir, dest, phpfiles):
+def process_files(session, dir, dest, phpfiles, decoder):
     print("uploading %d files..." % len(phpfiles), end='', flush=True)
-    res = upload(session, dir, phpfiles)
+    res = upload(session, dir, phpfiles, decoder)
     if res:
         success, failure = res
         print("done. %s successful, %d failed." % (len(success), len(failure)))
@@ -148,20 +148,20 @@ def process_files(session, dir, dest, phpfiles):
                 print("couldn't download. copying originals and continuing")
                 # copy(dir, dest, phpfiles)
                 not_decoded.extend([os.path.join(dir, f) for f in phpfiles])
-            clear(session)
+            clear(session, decoder)
 
 
-def main():
-    if args.destination == "":
-        args.destination = os.path.basename(args.source) + "_decoded"
+def main(destination, source, username, password, decoder, overwrite):
+    if destination == "":
+        destination = os.path.basename(source) + "_decoded"
 
-    session = login(args.username, args.password)
+    session = login(username, password)
     if session:
-        clear(session)
-        for dir, dirnames, filenames in os.walk(args.source):
+        clear(session, decoder)
+        for dir, dirnames, filenames in os.walk(source):
             print("descended into %s" % dir)
-            rel = os.path.relpath(dir, args.source)
-            dest = os.path.join(args.destination, rel).strip(".")
+            rel = os.path.relpath(dir, source)
+            dest = os.path.join(destination, rel).strip(".")
             if not os.path.exists(dest):
                 os.makedirs(dest)
                 # print("created %s" % dest)
@@ -177,7 +177,7 @@ def main():
             copy(dir, dest, other)
 
             # check overwrite
-            if not args.overwrite:
+            if not overwrite:
                 needed = []
                 for f in phpfiles:
                     csrc = os.path.join(dest, f)
@@ -190,10 +190,17 @@ def main():
             # upload
             if len(phpfiles) > 0:
                 for f in batch(phpfiles, 25):
-                    process_files(session, dir, dest, f)
+                    process_files(session, dir, dest, f, decoder)
         print("finished. ioncube files that failed to decode:")
         for f in not_decoded:
             print(f)
 
+def e_main(directory, username, password, decoder,):
+    text = os.path.basename(directory) + "_decoded"
+
+    session = login(username, password)
+    if session:
+        clear(session, decoder)
+
 if __name__ == '__main__':
-    main()
+    main(args.destination, args.source, args.username, args.password, args.decoder, args.overwrite)
